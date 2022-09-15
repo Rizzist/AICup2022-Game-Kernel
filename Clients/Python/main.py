@@ -1,7 +1,7 @@
 from os import makedirs
 from enum import Enum
-
-DEBUG = 0
+import numpy as np
+DEBUG = 1
 
 
 class Action(Enum):
@@ -44,7 +44,7 @@ class MapTile:
 
     def __str__(self) -> str:
         res = self.type.name
-        if self.type in [MapType.OUT_OF_SIGHT, MapType.OUT_OF_MAP]:
+        if self.type in [MapType.OUT_OF_SIGHT, MapType.OUT_OF_MAP]: 
             return res.center(16)
         elif self.type in [MapType.AGENT, MapType.GOLD]:
             res += f':{self.data}'
@@ -66,13 +66,13 @@ class Map:
             res += '\t'
             for j in range(self.sight_range):
                 res += str(self.grid[i * self.sight_range + j])
-                res += '*' if j < 4 else '\n'
+            res += '\n'
         return res[:-1]
 
     def set_grid_size(self) -> None:
         self.grid = [MapTile() for _ in range(self.sight_range ** 2)]
 
-
+  
 class GameState:
     def __init__(self) -> None:
         self.rounds = int(input())
@@ -107,7 +107,7 @@ class GameState:
         # Customize to your needs
         self.debug_log += f'round: {str(self.current_round)}\n'
         self.debug_log += f'location: {str(self.location)}\n'
-        self.debug_log += f'Map: {str(self.map)}\n'
+        self.debug_log += f'Map: {self.translate_map(self.map)}\n'
         self.debug_log += f'attack ratio: {str(self.attack_ratio)}\n'
         self.debug_log += f'defence level: {str(self.deflvl)}\n'
         self.debug_log += f'attack level: {str(self.atklvl)}\n'
@@ -116,7 +116,29 @@ class GameState:
         self.debug_log += f'list of wallets: {str(self.wallets)}\n'
         self.debug_log += f'last action: {str(self.last_action)}\n'
         self.debug_log += f'{60 * "-"}\n'
-
+    def translate_map(self, tmap):
+        using_string = str(tmap)
+        indv_lines = using_string.splitlines()
+        new_lines = []
+        for i in range(len(indv_lines)):
+            temp = indv_lines[i].split(' ')
+            temp = list(filter(lambda a: a != '', temp))
+            temp = list(filter(lambda a: a != '\t', temp))
+            temp = [-1 if str(x)[0] == '(' else x for x in temp]
+            temp = list(filter(lambda a: a != -1, temp))
+            temp = [0 if x == 'EMPTY' else x for x in temp]
+            temp = [1 if str(x)[:5] == 'AGENT' else x for x in temp]
+            temp = [2 if str(x)[:4] == 'GOLD' else x for x in temp]
+            temp = [3 if x == 'TREASURY' else x for x in temp]
+            temp = [4 if x == 'WALL' else x for x in temp]
+            temp = [5 if x == 'FOG' else x for x in temp]
+            temp = [6 if x == 'OUT_OF_SIGHT' else x for x in temp]
+            temp = [7 if x == 'OUT_OF_MAP' else x for x in temp]
+            new_lines.append(temp)
+        new_map = [new_lines[i] for i in range(1, len(new_lines))]
+        new_map = np.array(new_map).reshape(self.map.sight_range,  self.map.sight_range)
+        self.new_map = new_map
+        return str(new_map)
     def debug_file(self) -> None:
         fileName = 'Clients/logs/'
         makedirs(fileName, exist_ok=True)
@@ -127,6 +149,7 @@ class GameState:
     def get_action(self) -> Action:
         # write your code here
         # return the action value
+        
         return Action.STAY
 
 
